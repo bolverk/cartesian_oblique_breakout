@@ -135,7 +135,7 @@ namespace {
 		   (RightRectangle(Vector2D(-width_,-width_), Vector2D(width_, width_)),
 		    complete_grid(0.1,
 				  2*width_,
-				  0.01))),
+				  0.005))),
 		tess_(init_points_, outer_),
 #endif
       eos_(5./3.),
@@ -330,11 +330,11 @@ int main(void)
   SimData sim_data;
   hdsim& sim = sim_data.getSim();
 
-  const double tf = 1.75e-2;
+  const double tf = 1.9e-2;
   SafeTimeTermination term_cond(tf,1e6);
   MultipleDiagnostics diag
   (VectorInitialiser<DiagnosticFunction*>()
-   (new ConsecutiveSnapshots(new ZenoIntervals(20,0.9,1e-5,1),
+   (new ConsecutiveSnapshots(new ZenoIntervals(20,0.8,1e-5,1),
 			     new Rubric("output/snapshot_",".h5")))
    (new CraterSizeHistory("crater_size_history.txt"))
    (new WriteTime("time.txt"))
