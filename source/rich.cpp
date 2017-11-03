@@ -112,7 +112,7 @@ namespace {
     for(size_t i=0;i<res.size();++i){
       const Vector2D& r = tess.GetMeshPoint(static_cast<int>(i));
       res[i].density = r.y>-1e-3 ? 1e-6 : pow(-r.y,1.5);
-      res[i].pressure = abs(r-Vector2D(0,-1))<0.1 ? 1e4 : 0.01;
+      res[i].pressure = abs(r-Vector2D(0,-1))<0.1 ? 1e4 : 1e-6;
       res[i].velocity = Vector2D(0,0);
     }
     return res;
@@ -278,6 +278,46 @@ namespace {
   private:
     const string fname_;
   };
+
+  class ZenoIntervals: public Trigger
+  {
+  public:
+
+    ZenoIntervals(size_t gen,
+		  double q,
+		  double p_thres,
+		  double initial_sep):
+      gen_(gen),
+      q_(q),
+      p_thres_(p_thres),
+      initial_sep_(initial_sep),
+      counter_() {}
+
+    bool operator()(const hdsim& sim)
+    {
+      if(counter_>gen_)
+	return false;
+      const double len = initial_sep_*pow(q_, counter_);
+      const vector<ComputationalCell>& cells = sim.getAllCells();
+      const Tessellation& tess = sim.getTessellation();
+      for(size_t i=0;i<cells.size();++i){
+	const ComputationalCell& cell = cells.at(i);
+	const Vector2D& r = tess.GetMeshPoint(static_cast<int>(i));
+	if(cell.pressure>p_thres_ && (-r.y)<len){
+	  ++counter_;
+	  return true;
+	}
+      }
+      return false;
+    }
+
+  private:
+    const size_t gen_;
+    const double q_;
+    const double p_thres_;
+    const double initial_sep_;
+    mutable size_t counter_;
+  };
 }
 
 int main(void)
@@ -294,7 +334,7 @@ int main(void)
   SafeTimeTermination term_cond(tf,1e6);
   MultipleDiagnostics diag
   (VectorInitialiser<DiagnosticFunction*>()
-   (new ConsecutiveSnapshots(new ConstantTimeInterval(tf/100),
+   (new ConsecutiveSnapshots(new ZenoIntervals(20,0.9,1e-5,1),
 			     new Rubric("output/snapshot_",".h5")))
    (new CraterSizeHistory("crater_size_history.txt"))
    (new WriteTime("time.txt"))
